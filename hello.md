@@ -10,20 +10,13 @@ Please login using your ISU credentials.
 
 We will be using the VS Code Server on ISU HPC cluster for this tutorial. 
 
-## Setting  up the environment with micromamba
+## Setting  up the environment
 
-```bash
-module load micromamba
-micromamba create -n nextflow_env
-micromamba activate nextflow_env
-micromamba install bioconda::nextflow
-```
-
-## Let us clone the tutorial repo
+### Let us clone the tutorial repo
 
 ```bash
 cd /work/short_term/<ISU_NetID>
-git clone git@github.com:ISUgenomics/2025-nextflow-workshop.git
+git clone https://github.com/ISUgenomics/isu-nextflow-workshop.git
 ```
 
 ## Copying data required for the tutorial
