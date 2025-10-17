@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 
-params.reads = "01_Data/AT_Illumina_paired_*fastq"
+params.reads = "01_data/*fastq.gz"
 params.output_qc = "02_IlluminaQC"
 
 process FastQC {
