@@ -22,7 +22,7 @@ git clone https://github.com/ISUgenomics/isu-nextflow-workshop.git
 ## Copying data required for the tutorial
 
 ```bash
-cp -r ../gpn_nextflow/01_Data/ .
+cp -a /work/short_term/workshop2_bash/01_data .
 ```
 
 ## Manual echo on the command line
@@ -37,11 +37,11 @@ Welcome to the world of Nextflow!
 
 This prints a greeting directly in the shell. Next, we'll automate this using Nextflow.
 
-## 1. Load the environment modules
+## 1. Load the module
 
 ```bash
-cd /Users/vsatheesh/Documents/ISU/GIF/tutorials/nextflow
-source environment/modules.sh
+module load nextflow
+module list
 ```
 
 ## 2. Inspect the pipeline script
