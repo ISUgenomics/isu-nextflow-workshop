@@ -23,6 +23,8 @@ workflow {
         .fromPath(params.reads)
         .collect()
         .set { illumina_reads }
+        // .flatMap { it }
+        // .view()
 
     ReadLenDist(illumina_reads)
 }
