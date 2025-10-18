@@ -26,7 +26,7 @@ process Fastp {
     -I ${read2} \
     -o ${sample_id}_1.trimmed.fastq.gz \
     -O ${sample_id}_2.trimmed.fastq.gz
-    """
+  """
 }
 
 workflow {
