@@ -1,13 +1,11 @@
 #!/usr/bin/env nextflow
 
 //-- Configurable params
-params.reads = '01_Data/*_{1,2}.fastq'
-params.adapters = "${projectDir}/resources/adapters.fa"
-params.trim_quality = 20
-params.min_length = 25
-params.output_qc = '02_IlluminaQC'
-params.output_trim = '03_Trimmed'
-params.output_jf = '04_GenomeScope'
+params.reads = '01_data/*_{R1,R2}.fastq.gz'
+params.output_qc = '02_illuminaQC'
+params.output_trim = '03_trimmed'
+params.trimmed_reads = '03_trimmed/*fastq.gz'
+params.output_rld = '04_read_len_dist'
 
 process FastQC {
     tag "${sample_id}"
@@ -28,7 +26,7 @@ process FastQC {
     """
 }
 
-process BBDuk {
+process Fastp {
   tag "${sample_id}"
 
   publishDir params.output_trim, mode: 'copy'
@@ -38,38 +36,32 @@ process BBDuk {
 
   output:
   tuple val(sample_id), 
-      path("${sample_id}_1.trimmed.fastq"),
-      path("${sample_id}_2.trimmed.fastq")
+      path("${sample_id}_R1.trimmed.fastq.gz"),
+      path("${sample_id}_R2.trimmed.fastq.gz")
 
   script:
   """
-  module load bbmap
+  module load fastp
 
-  bbduk.sh \
-    in1=${read1} in2=${read2} \
-    out1=${sample_id}_1.trimmed.fastq \
-    out2=${sample_id}_2.trimmed.fastq \
-    ref=${params.adapters} \
-    ktrim=4 k=23 mink=11 hdist=1 \
-    qtrim=rl trimq=${params.trim_quality} \
-    minlen=${params.min_length}
-    """
+  fastp -i ${read1} \
+        -I ${read2} \
+        -o ${sample_id}_R1.trimmed.fastq.gz \
+        -O ${sample_id}_R2.trimmed.fastq.gz
+  """
 }
 
-process Jellyfish {
-    publishDir params.output_jf, mode: 'copy'
+process ReadLenDist {
+    publishDir params.output_rld, mode: 'copy'
 
     input:
-    tuple val(sample_id), path(read1), path(read2)
+    path reads
 
     output:
-    path 'reads.*'
+    path '*.tsv'
 
     script:
     """
-    module load jellyfish
-    jellyfish count -C -m 21 -s 1G -t 8 ${read1} ${read2} -o reads.jf 
-    jellyfish histo -t 8 reads.jf > reads.histo
+    read_length_dist.py samples_read_len_dist.tsv $reads
     """
 }
 
@@ -80,6 +72,12 @@ workflow {
     // trim_ch.view()
 
     fastqc_ch | FastQC
-    trimmed_reads_ch = trim_ch | BBDuk 
-    trimmed_reads_ch | Jellyfish
+    trimmed_output = trim_ch | Fastp 
+
+    trimmed_output
+        .map { sample_id, r1, r2 -> [r1, r2] }
+        // .flatten()
+        .collect()
+        // .view()
+        | ReadLenDist
 }
