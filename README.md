@@ -178,7 +178,7 @@ For questions about:
 
 ### ISU Resources
 
-- [Nova HPC Documentation](https://www.hpc.iastate.edu/guides/introduction-to-hpc-clusters)
+- [Nova HPC Documentation](https://www.hpc.iastate.edu/guides)
 - [Genome Informatics Facility](https://gif.biotech.iastate.edu/)
 - [GIF Help](mailto:gifhelp@iastate.edu)
 
