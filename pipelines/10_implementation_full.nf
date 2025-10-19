@@ -72,9 +72,9 @@ workflow {
     // trim_ch.view()
 
     fastqc_ch | FastQC
-    trimmed_output = trim_ch | Fastp 
+    trimmed_output_ch = trim_ch | Fastp 
 
-    trimmed_output
+    trimmed_output_ch
         .map { sample_id, r1, r2 -> [r1, r2] }
         // .flatten()
         .collect()
