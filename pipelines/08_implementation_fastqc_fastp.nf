@@ -2,8 +2,8 @@
 
 //-- Configurable params
 params.reads = '01_data/*_{R1,R2}.fastq.gz'
-params.output_qc = '02_IlluminaQC'
-params.output_trim = '03_Trimmed'
+params.output_qc = '02_illuminaQC'
+params.output_trim = '03_trimmed'
 
 process FastQC {
     tag "${sample_id}"
@@ -51,11 +51,10 @@ process Fastp {
 
 workflow {
     fastqc_ch = Channel.fromPath(params.reads)
-    fastqc_ch.view()
+    // fastqc_ch.view()
     trim_ch = Channel.fromFilePairs(params.reads, flat:true)
-    trim_ch.view()
+    // trim_ch.view()
 
     fastqc_ch | FastQC
-    trimmed_reads_ch = trim_ch | Fastp 
-    trimmed_reads_ch.view()
+    trim_ch | Fastp 
 }

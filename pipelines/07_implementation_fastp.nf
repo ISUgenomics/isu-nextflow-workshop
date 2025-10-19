@@ -2,7 +2,7 @@
 
 //-- Configurable params
 params.reads = '01_data/*_{R1,R2}.fastq.gz'
-params.output_trim = '03_Trimmed'
+params.output_trim = '03_trimmed'
 
 process Fastp {
   tag "${sample_id}"

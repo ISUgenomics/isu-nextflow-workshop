@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 
 params.reads = "01_data/*fastq.gz"
-params.output_qc = "02_IlluminaQC"
+params.output_qc = "02_illuminaQC"
 
 process FastQC {
     tag "${sample_id}"
