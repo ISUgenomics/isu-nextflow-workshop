@@ -192,10 +192,10 @@ graph LR
     B --> C[implementation.md<br/>Scripts 06-10<br/>Real Pipeline]
     C --> D[Build Your Own<br/>Pipeline!]
     
-    style A fill:#e1f5ff
-    style B fill:#fff9c4
-    style C fill:#c8e6c9
-    style D fill:#f8bbd0
+    style A fill:#e1f5ff,stroke:#01579b,stroke-width:2px,color:#000
+    style B fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#000
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style D fill:#f8bbd0,stroke:#c2185b,stroke-width:2px,color:#000
 ```
 
 ---
