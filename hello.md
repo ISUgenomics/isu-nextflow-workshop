@@ -1312,10 +1312,136 @@ params.min_length = 50
 
 You're ready for the implementation tutorial (Scripts 06-10) with real bioinformatics tools!
 
-## 6. Clean up
+---
 
-Remove work files:
+## Workshop Checkpoint: What You've Learned
+
+### Core Concepts Mastered
+
+**Script 01 - Hello World:**
+- Basic Nextflow script structure
+- Process definitions and workflow orchestration
+- Using `.view()` for debugging
+
+**Script 02 - File Outputs:**
+- Creating file outputs with `path`
+- Understanding the work directory
+- Inspecting `.command.*` files for debugging
+
+**Script 03 - Publishing:**
+- Using `publishDir` to make outputs accessible
+- Different publishing modes (copy, symlink, move)
+- Separating work directory from final outputs
+
+**Script 04 - Process Inputs:**
+- Defining process inputs with `val`
+- Variable interpolation in scripts
+- Passing data from workflow to process
+
+**Script 05 - Parameters:**
+- Making pipelines configurable with `params`
+- Setting default values and overriding from command line
+- Best practices for parameter naming
+
+---
+
+## Next Steps: Implementation Tutorial
+
+### What's Coming in Scripts 06-10
+
+Now you'll apply these concepts to build a **real bioinformatics pipeline**:
+
+**Script 06 - FastQC Quality Control:**
+- Run a published tool (FastQC) on multiple files in parallel
+
+**Script 07 - Paired-End Read Trimming:**
+- Handle paired-end sequencing data with Fastp
+
+**Script 08 - Parallel Workflows:**
+- Run multiple processes simultaneously
+
+**Script 09 - Collecting Results:**
+- Use `.collect()` to aggregate files
+- Run custom Python scripts
+
+**Script 10 - Complete Pipeline:**
+- Chain processes together with channel transformations
+
+### Ready to Continue?
+
+**Open the implementation tutorial:**
 
 ```bash
-nextflow clean -f pipelines/hello.nf -profile local
+cat implementation.md
 ```
+
+**Or in your editor:**
+```bash
+code implementation.md
+```
+
+---
+
+## Cleaning Up (Optional)
+
+Before moving forward, you can optionally clean up:
+
+```bash
+# Remove work directory
+rm -rf work/
+
+# Remove output directory
+rm -rf output/
+```
+
+---
+
+## Quick Reference
+
+### Essential Commands
+
+```bash
+# Run a pipeline
+nextflow run script.nf
+
+# Override parameters
+nextflow run script.nf --param_name value
+
+# Resume from checkpoint
+nextflow run script.nf -resume
+```
+
+### Essential Syntax
+
+```nextflow
+// Parameters
+params.input = "data/*.fastq"
+
+// Process
+process MyProcess {
+    publishDir 'results', mode: 'copy'
+    input:
+    path input_file
+    output:
+    path 'output.txt'
+    script:
+    """
+    my_tool $input_file > output.txt
+    """
+}
+
+// Workflow
+workflow {
+    Channel.fromPath(params.input) | MyProcess
+}
+```
+
+---
+
+## Continue to Implementation Tutorial
+
+**You've built a solid foundation. Now let's apply it to real-world analysis!**
+
+**Next:** [Implementation Tutorial (Scripts 06-10)](implementation.md)
+
+In the implementation tutorial, you'll process real sequencing data and build a complete analysis pipeline.
