@@ -1,6 +1,88 @@
-# Nextflow Tutorial
+# Introduction to Nextflow: Building Reproducible Computational Pipelines
 
-This exercise shows how to run a minimal Nextflow pipeline locally.
+Welcome to the Nextflow workshop! In this hands-on tutorial, you'll learn how to build scalable, reproducible computational pipelines using Nextflow.
+
+## What is Nextflow?
+
+**Nextflow** is a powerful workflow management system designed to make computational pipelines:
+- **Portable**: Run the same pipeline on your laptop, HPC cluster, or cloud
+- **Reproducible**: Track every step and ensure consistent results
+- **Scalable**: Automatically parallelize tasks across available resources
+- **Flexible**: Write once, run anywhere (local, SLURM, AWS, etc.)
+- **Tool-agnostic**: Integrate any command-line program (Python, R, bash scripts, compiled binaries)
+
+### Why Use Nextflow?
+
+Traditional computational workflows often involve:
+- Writing complex bash scripts with nested loops
+- Manually tracking which files have been processed
+- Struggling with parallelization and resource management
+- Difficulty reproducing results months later
+- Combining tools from different sources (published tools, lab scripts, your own code)
+
+**Nextflow solves these problems** by:
+- Automatically parallelizing independent tasks
+- Managing data flow between processes
+- Handling failures and resuming from checkpoints
+- Providing clear, readable pipeline code
+- Seamlessly integrating tools regardless of their origin
+
+### Key Concepts
+
+Before we start, here are the core concepts you'll learn:
+
+1. **Processes**: Individual computational tasks (running any command-line tool or script)
+2. **Channels**: Data streams that connect processes together
+3. **Workflows**: The orchestration of processes and data flow
+4. **Operators**: Methods to transform and manipulate channels (`.map()`, `.collect()`, etc.)
+
+### About This Workshop
+
+**Example Domain**: We use bioinformatics examples in this workshop, but the concepts apply to **any computational domain**:
+- Image processing and computer vision
+- Climate modeling and simulations
+- Text analysis and natural language processing
+- Machine learning pipelines
+- Statistical analysis workflows
+- Any field requiring batch processing of data
+
+**Tools Used**: Throughout this workshop, you'll see how Nextflow integrates:
+- **Published tools**: FastQC and Fastp (widely-used bioinformatics programs)
+- **Custom scripts**: Python scripts written specifically for this analysis
+- **Your own tools**: The same principles apply to any command-line program you use
+
+The key insight: **Nextflow doesn't care what your tools do** - it just manages how data flows between them!
+
+### What You'll Build Today
+
+In this workshop, you'll progress through increasingly complex pipelines:
+
+**Scripts 01-05** (This tutorial):
+- Script 01: Hello World - Your first Nextflow process
+- Script 02: Working with files - Reading and writing data
+- Script 03: Using parameters - Making pipelines configurable
+- Script 04: Multiple inputs - Processing several files
+- Script 05: Channels - Understanding data flow
+
+**Scripts 06-10** (Implementation tutorial):
+- Script 06: Quality control with FastQC (published tool)
+- Script 07: Data trimming with Fastp (published tool)
+- Script 08: Parallel workflows (running multiple tools simultaneously)
+- Script 09: Collecting results with ReadLenDist (custom Python script)
+- Script 10: Complete multi-step pipeline (integrating everything)
+
+### Learning Approach
+
+This tutorial is designed to be:
+- **Hands-on**: You'll run every script and see the results
+- **Progressive**: Each script builds on concepts from the previous one
+- **Practical**: Real tools and data from actual research workflows
+- **Interactive**: Experiment, break things, and learn!
+- **Transferable**: Apply these skills to your own research domain
+
+Let's get started!
+
+---
 
 ## Getting a compute node on Nova using OnDemand
 
