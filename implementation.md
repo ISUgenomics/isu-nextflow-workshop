@@ -823,6 +823,326 @@ nextflow run pipelines/09_implementation_readLenDist.nf
 
 **Note:** This script assumes trimmed files exist in `03_trimmed/` (from running Script 07 or 08 first)
 
+## Script 10: The Full Pipeline - Channel Transformations
+
+**Learning Goals:**
+- Combine all processes into a complete workflow
+- Learn the `.map()` operator for channel transformation
+- Understand chaining collect after map
+- See how data flows through a multi-step pipeline
+
+<details>
+<summary>Click to see the complete script</summary>
+
+**File:** `pipelines/10_implementation_full.nf`
+
+```nextflow
+#!/usr/bin/env nextflow
+
+//-- Configurable params
+params.reads = '01_data/*_{R1,R2}.fastq.gz'
+params.output_qc = '02_illuminaQC'
+params.output_trim = '03_trimmed'
+params.trimmed_reads = '03_trimmed/*fastq.gz'
+params.output_rld = '04_read_len_dist'
+
+process FastQC {
+    tag "${sample_id}"
+
+    publishDir params.output_qc, mode: 'copy'
+
+    input:
+    path sample_id
+
+    output:
+    path "*.html"
+    path "*.zip"
+
+    script:
+    """
+    module load fastqc
+    fastqc -t 2 ${sample_id}
+    """
+}
+
+process Fastp {
+  tag "${sample_id}"
+
+  publishDir params.output_trim, mode: 'copy'
+
+  input:
+  tuple val(sample_id), path(read1), path(read2)
+
+  output:
+  tuple val(sample_id), 
+      path("${sample_id}_R1.trimmed.fastq.gz"),
+      path("${sample_id}_R2.trimmed.fastq.gz")
+
+  script:
+  """
+  module load fastp
+
+  fastp -i ${read1} \\
+        -I ${read2} \\
+        -o ${sample_id}_R1.trimmed.fastq.gz \\
+        -O ${sample_id}_R2.trimmed.fastq.gz
+  """
+}
+
+process ReadLenDist {
+    publishDir params.output_rld, mode: 'copy'
+
+    input:
+    path reads
+
+    output:
+    path '*.tsv'
+
+    script:
+    """
+    read_length_dist.py samples_read_len_dist.tsv $reads
+    """
+}
+
+workflow {
+    fastqc_ch = Channel.fromPath(params.reads)
+    // fastqc_ch.view()
+    trim_ch = Channel.fromFilePairs(params.reads, flat:true)
+    // trim_ch.view()
+
+    fastqc_ch | FastQC
+    trimmed_output_ch = trim_ch | Fastp 
+
+    trimmed_output_ch
+        .map { sample_id, r1, r2 -> [r1, r2] }
+        // .flatten()
+        .collect()
+        // .view()
+        | ReadLenDist
+}
+```
+
+</details>
+
+### Understanding the Complete Workflow
+
+<details>
+<summary>Workflow Overview</summary>
+
+**Data Flow:**
+
+```
+Raw Reads (01_data/)
+    │
+    ├───────────────────────────────────────────┐
+    │                                               │
+    ▼ (fromPath)                                   ▼ (fromFilePairs)
+  FastQC                                          Fastp
+    │                                               │
+    ▼                                               ▼
+  QC Reports                                  Trimmed Reads
+  (02_illuminaQC/)                                │
+                                                  ▼ (.map + .collect)
+                                              ReadLenDist
+                                                  │
+                                                  ▼
+                                            Length Distribution
+                                            (04_read_len_dist/)
+```
+
+</details>
+
+<details>
+<summary>The .map() Operator</summary>
+
+```nextflow
+trimmed_output_ch
+    .map { sample_id, r1, r2 -> [r1, r2] }
+    .collect()
+    | ReadLenDist
+```
+
+**What is `.map()`?**
+
+The `.map()` operator transforms each item in a channel using a closure (function).
+
+**Input to map** (from Fastp output):
+```
+[bio_sample_01, bio_sample_01_R1.trimmed.fastq.gz, bio_sample_01_R2.trimmed.fastq.gz]
+[bio_sample_02, bio_sample_02_R1.trimmed.fastq.gz, bio_sample_02_R2.trimmed.fastq.gz]
+[bio_sample_03, bio_sample_03_R1.trimmed.fastq.gz, bio_sample_03_R2.trimmed.fastq.gz]
+... (5 tuples total)
+```
+
+**The transformation:**
+```nextflow
+.map { sample_id, r1, r2 -> [r1, r2] }
+```
+- **Input**: Tuple with 3 elements `(sample_id, r1, r2)`
+- **Output**: List with 2 elements `[r1, r2]`
+- **Effect**: Removes the sample_id, keeps only the file paths
+
+**Output from map:**
+```
+[bio_sample_01_R1.trimmed.fastq.gz, bio_sample_01_R2.trimmed.fastq.gz]
+[bio_sample_02_R1.trimmed.fastq.gz, bio_sample_02_R2.trimmed.fastq.gz]
+[bio_sample_03_R1.trimmed.fastq.gz, bio_sample_03_R2.trimmed.fastq.gz]
+... (5 lists)
+```
+
+**Why remove sample_id?**
+Because ReadLenDist doesn't need sample names - it just needs all the files!
+
+</details>
+
+<details>
+<summary>Chaining map() and collect()</summary>
+
+```nextflow
+trimmed_output_ch
+    .map { sample_id, r1, r2 -> [r1, r2] }
+    .collect()
+    | ReadLenDist
+```
+
+**Step-by-step transformation:**
+
+1. **After Fastp** (`trimmed_output_ch`):
+   ```
+   [bio_sample_01, bio_sample_01_R1.trimmed.fastq.gz, bio_sample_01_R2.trimmed.fastq.gz]
+   [bio_sample_02, bio_sample_02_R1.trimmed.fastq.gz, bio_sample_02_R2.trimmed.fastq.gz]
+   ... (5 tuples)
+   ```
+
+2. **After `.map()`**:
+   ```
+   [bio_sample_01_R1.trimmed.fastq.gz, bio_sample_01_R2.trimmed.fastq.gz]
+   [bio_sample_02_R1.trimmed.fastq.gz, bio_sample_02_R2.trimmed.fastq.gz]
+   ... (5 lists of 2 files each)
+   ```
+
+3. **After `.collect()`**:
+   ```
+   [[bio_sample_01_R1.trimmed.fastq.gz, bio_sample_01_R2.trimmed.fastq.gz],
+    [bio_sample_02_R1.trimmed.fastq.gz, bio_sample_02_R2.trimmed.fastq.gz],
+    ... (nested list with all 10 files)]
+   ```
+
+**Wait, that's a nested list!** The commented `.flatten()` could be used to flatten it:
+
+4. **After `.flatten()` (if uncommented)**:
+   ```
+   [bio_sample_01_R1.trimmed.fastq.gz,
+    bio_sample_01_R2.trimmed.fastq.gz,
+    bio_sample_02_R1.trimmed.fastq.gz,
+    ... (flat list with all 10 files)]
+   ```
+
+But Nextflow is smart - when you pass a nested list to a process expecting `path reads`, it automatically flattens it!
+
+</details>
+
+<details>
+<summary>Alternative: Using flatten before collect</summary>
+
+You could also write it as:
+
+```nextflow
+trimmed_output_ch
+    .map { sample_id, r1, r2 -> [r1, r2] }
+    .flatten()
+    .collect()
+    | ReadLenDist
+```
+
+This explicitly flattens before collecting:
+
+1. After `.map()`: `[[r1, r2], [r1, r2], ...]` (5 lists)
+2. After `.flatten()`: `[r1, r2, r1, r2, ...]` (10 individual files)
+3. After `.collect()`: `[r1, r2, r1, r2, ...]` (all 10 files in one list)
+
+Both approaches work!
+
+</details>
+
+<details>
+<summary>Commented Debug Lines</summary>
+
+```nextflow
+// fastqc_ch.view()
+// trim_ch.view()
+// .flatten()
+// .view()
+```
+
+These are debugging aids. Uncomment them to see channel contents at each step:
+
+```nextflow
+trimmed_output_ch
+    .map { sample_id, r1, r2 -> [r1, r2] }
+    .view()  // See output after map
+    .collect()
+    .view()  // See output after collect
+    | ReadLenDist
+```
+
+**Pro tip:** Use `.view()` liberally when developing to understand data flow!
+
+</details>
+
+### Complete Workflow Execution
+
+<details>
+<summary>How the full pipeline executes</summary>
+
+**Execution Timeline:**
+
+```
+Phase 1: Parallel QC and Trimming
+  ├─ FastQC(bio_sample_01_R1) ───────────────────────────────────┐
+  ├─ FastQC(bio_sample_01_R2) ───────────────────────────────────┤
+  ├─ FastQC(bio_sample_02_R1) ───────────────────────────────────┤
+  ├─ ... (10 FastQC jobs total)                     ┼─ FastQC complete
+  │                                                  ┘
+  ├─ Fastp(bio_sample_01) ─────────────────────────────────────────┐
+  ├─ Fastp(bio_sample_02) ─────────────────────────────────────────┤
+  └─ ... (5 Fastp jobs total)                        ┴─ Fastp complete
+                                                            │
+                                                            ▼
+Phase 2: Collect and Analyze                      .map() + .collect()
+                                                            │
+                                                            ▼
+  └─ ReadLenDist(all 10 trimmed files) ────────────────────────── Analysis complete
+```
+
+**Key Points:**
+1. FastQC and Fastp run in parallel (independent)
+2. ReadLenDist waits for all Fastp processes to complete (`.collect()` blocks)
+3. ReadLenDist runs once with all 10 trimmed files
+
+</details>
+
+### Running Script 10
+
+```bash
+nextflow run pipelines/10_implementation_full.nf
+```
+
+**Expected Output:**
+- `02_illuminaQC/`: FastQC HTML and ZIP reports for all raw reads (10 files)
+- `03_trimmed/`: Trimmed FASTQ files from Fastp (10 files)
+- `04_read_len_dist/samples_read_len_dist.tsv`: Combined read length distribution
+
+### Key Takeaways
+
+**You've learned:**
+- Basic process structure (Script 06)
+- Paired-end file handling (Script 07)
+- Parallel workflows (Script 08)
+- Channel collection (Script 09)
+- Channel transformation with `.map()` (Script 10)
+- Building complete multi-step pipelines (Script 10)
+
 ## Troubleshooting Common Issues
 
 <details>
