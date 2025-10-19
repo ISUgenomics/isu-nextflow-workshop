@@ -1382,17 +1382,134 @@ code implementation.md
 
 ---
 
-## Cleaning Up (Optional)
+## Understanding the Work Directory
 
-Before moving forward, you can optionally clean up:
+### What is the work directory for?
+
+Throughout Scripts 01-05, Nextflow created a `work/` directory with cryptic subdirectories. Let's understand why this exists and when to clean it up.
+
+**The work directory serves two critical purposes:**
+
+1. **Pipeline execution workspace**
+   - Each process runs in its own isolated subdirectory
+   - Contains all inputs, outputs, and execution logs
+   - Enables debugging (you can inspect exactly what happened)
+
+2. **Resume functionality**
+   - Nextflow tracks which tasks completed successfully
+   - Allows skipping already-completed work
+   - Essential for long-running pipelines
+
+### The -resume Feature
+
+<details>
+<summary>How resume works</summary>
+
+Imagine you run a pipeline with 100 samples, and it fails on sample 95. Without `-resume`, you'd have to rerun all 100 samples!
+
+**With `-resume`, Nextflow is smart:**
 
 ```bash
-# Remove work directory
+# First run (fails at sample 95)
+nextflow run script.nf
+
+# Fix the issue, then resume
+nextflow run script.nf -resume
+```
+
+**What happens:**
+- Nextflow checks the work directory
+- Finds that samples 1-94 completed successfully
+- **Skips** those tasks (uses cached results)
+- **Only runs** sample 95 onwards
+
+**How it knows:**
+- Each task has a unique hash based on:
+  - Process script
+  - Input files
+  - Parameters
+- If hash matches and task succeeded, reuse the result!
+
+</details>
+
+<details>
+<summary>When to use -resume</summary>
+
+**Use `-resume` when:**
+- Your pipeline failed and you fixed the issue
+- You stopped the pipeline and want to continue
+- You added more samples and want to process only the new ones
+- You're iterating during development
+
+**Example scenario:**
+```bash
+# Run pipeline on 10 samples
+nextflow run script.nf --input "data/*.fastq"
+# (Completes successfully)
+
+# Add 5 more samples to data/
+# Run again with -resume
+nextflow run script.nf --input "data/*.fastq" -resume
+# Only processes the 5 new samples!
+```
+
+</details>
+
+### Should You Clean the Work Directory?
+
+**During development (now):** **Keep it!**
+- You'll experiment with scripts
+- You'll use `-resume` frequently
+- Disk space is minimal (Scripts 01-05 are tiny)
+
+**After pipeline completion:** **Optional cleanup**
+- Published outputs are in `output/` (safe to keep)
+- Work directory can be deleted to save space
+- Only matters when working with large files
+
+### Cleaning Up (Optional)
+
+If you want to clean up before moving to the implementation tutorial:
+
+```bash
+# Remove work directory (safe - outputs are published)
 rm -rf work/
 
-# Remove output directory
+# Remove output directory (if you want a fresh start)
 rm -rf output/
 ```
+
+**Or keep everything:**
+```bash
+# Do nothing! The work directory from Scripts 01-05 is tiny.
+# You'll learn more about cleanup strategies in the implementation
+# tutorial when working with real sequencing data (GB of files).
+```
+
+### Advanced: Nextflow Clean Command
+
+<details>
+<summary>Using nextflow clean (optional)</summary>
+
+Nextflow provides a `clean` command for more selective cleanup:
+
+```bash
+# See what would be deleted (dry run)
+nextflow clean -n
+
+# Delete all work files
+nextflow clean -f
+
+# Keep only successful runs, delete failed ones
+nextflow clean -f -k
+
+# Delete work files older than a certain run
+nextflow clean -f -before <run_name>
+```
+
+**For now, simple `rm -rf work/` is fine.** You'll learn more about `nextflow clean` in the implementation tutorial.
+
+</details>
 
 ---
 
