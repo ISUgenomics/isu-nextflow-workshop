@@ -107,43 +107,56 @@ git clone https://github.com/ISUgenomics/isu-nextflow-workshop.git
 cp -a /work/short_term/workshop2_bash/01_data .
 ```
 
-## Manual echo on the command line
+## Script 01: Hello World - Your First Nextflow Process
+
+**Learning Goals:**
+- Understand the basic structure of a Nextflow script
+- Learn what a process is and how it works
+- See how the workflow block orchestrates processes
+- Use the `.view()` operator to display output
+
+### Before Nextflow: Manual Command
+
+First, let's see what we're automating. Run this command directly in your terminal:
 
 ```bash
 echo 'Welcome to the world of Nextflow!'
 ```
 
-<pre>
+**Output:**
+```
 Welcome to the world of Nextflow!
-</pre>
+```
 
-This prints a greeting directly in the shell. Next, we'll automate this using Nextflow.
+This prints a greeting directly in the shell. Simple, right? But what if you need to:
+- Run this on 100 different inputs?
+- Track when it was run and with what parameters?
+- Resume if it fails?
+- Run it on different compute systems?
 
-## 1. Load the module
+That's where Nextflow comes in!
+
+### Step 1: Load Nextflow
 
 ```bash
 module load nextflow
 module list
 ```
 
-## 2. Inspect the pipeline script
+This loads the Nextflow module on the HPC cluster.
 
-Open and read the `1_hello_screen.nf` pipeline:
+### Step 2: Examine the Script
 
-```bash
-cat pipelines/1_hello_screen.nf
-```
-
-You should see a simple DSL2 script that prints a greeting.
-
-### Run the pipeline
+Let's look at the Nextflow version:
 
 ```bash
-nextflow run 2025-nextflow-workshop/pipelines/1_hello_screen.nf
+cat pipelines/01_hello_screen.nf
 ```
 
 <details>
-<summary>Click to view the script</summary>
+<summary>Click to see the complete script</summary>
+
+**File:** `pipelines/01_hello_screen.nf`
 
 ```nextflow
 #!/usr/bin/env nextflow
@@ -168,30 +181,153 @@ workflow {
     hello().view()
 }
 ```
+
 </details>
 
-### Explanation of key lines in `pipelines/1_hello_screen.nf`
+### Understanding the Components
 
-- `#!/usr/bin/env nextflow`: Declares the script as an executable Nextflow pipeline.
-- `process hello { ... }`: Defines a process named `hello` that encapsulates a computational step.
-- `output:`: Specifies the outputs; here `stdout` captures the standard output into the `result` channel.
-- `script: """ ... """`: Contains the shell commands to execute within the process (echoing the greeting).
-- `workflow { ... }`: Starts the workflow block where channels and processes are orchestrated.
-- `hello()`: Runs the `hello` process.
-- `.view`: A method that prints the output of a process to the terminal.
+<details>
+<summary>The Shebang Line</summary>
 
-Expected output: 
+```nextflow
+#!/usr/bin/env nextflow
+```
+
+- Declares this file as a Nextflow script
+- Allows the script to be executed directly (like a bash script)
+- Not strictly required, but good practice
+
+</details>
+
+<details>
+<summary>The Process Block</summary>
+
+```nextflow
+process hello {
+    output:
+    stdout
+
+    script:
+    """
+    echo "Welcome to the world of Nextflow!"
+    """
+}
+```
+
+**What is a Process?**
+
+A process is a **basic computing unit** in Nextflow. Think of it as a wrapper around any command-line tool or script.
+
+**Components:**
+
+- **`process hello`**: Names the process "hello"
+- **`output: stdout`**: Captures standard output (what the command prints)
+  - This creates a **channel** containing the output
+  - Channels are how data flows between processes
+- **`script: """ ... """`**: Contains the actual command(s) to run
+  - Triple quotes allow multi-line commands
+  - Can contain any bash/shell commands
+  - Variables can be interpolated with `${variable}`
+
+**Key Insight:** The process doesn't run immediately - it's just a definition. The workflow block decides when to run it.
+
+</details>
+
+<details>
+<summary>The Workflow Block</summary>
+
+```nextflow
+workflow {
+    // Run the hello process
+    hello().view()
+}
+```
+
+**What is a Workflow?**
+
+The workflow block is where you **orchestrate** your processes - deciding which to run, in what order, and with what data.
+
+**Components:**
+
+- **`hello()`**: Executes the hello process
+  - Returns a channel containing the process output
+  - In this case, the channel contains "Welcome to the world of Nextflow!"
+- **`.view()`**: A channel operator that prints channel contents to the terminal
+  - Useful for debugging and seeing what's in a channel
+  - Without `.view()`, the output would be captured but not displayed
+
+**Data Flow:**
+```
+hello process → stdout channel → .view() → terminal
+```
+
+</details>
+
+### Step 3: Run the Pipeline
+
+```bash
+nextflow run pipelines/01_hello_screen.nf
+```
+
+**Expected Output:**
 
 ```
- N E X T F L O W   ~  version 24.04.4
+N E X T F L O W  ~  version 24.04.4
 
-Launching `hello.nf` [maniac_albattani] DSL2 - revision: 91b2c7c409
+Launching `pipelines/01_hello_screen.nf` [maniac_albattani] DSL2 - revision: 91b2c7c409
 
 executor >  local (1)
-[9c/4c931d] hello [100%] 1 of 1 ✔
-Hello Nextflow World!
+[9c/4c931d] process > hello [100%] 1 of 1 ✔
+Welcome to the world of Nextflow!
 ```
-The greeting should appear on your terminal.
+
+### Understanding the Output
+
+<details>
+<summary>What does each line mean?</summary>
+
+```
+N E X T F L O W  ~  version 24.04.4
+```
+- Nextflow version being used
+
+```
+Launching `pipelines/01_hello_screen.nf` [maniac_albattani] DSL2 - revision: 91b2c7c409
+```
+- Script being run
+- Random name assigned to this run ("maniac_albattani")
+- DSL2: Nextflow's Domain Specific Language version 2
+- Git revision (if in a git repository)
+
+```
+executor >  local (1)
+```
+- Executor: where the process runs (local machine, SLURM, AWS, etc.)
+- (1): One process executed
+
+```
+[9c/4c931d] process > hello [100%] 1 of 1 ✔
+```
+- `[9c/4c931d]`: Unique hash for this process execution
+  - Used to find the work directory: `work/9c/4c931d.../`
+- `process > hello`: Name of the process
+- `[100%] 1 of 1 ✔`: Progress indicator - 1 task completed successfully
+
+```
+Welcome to the world of Nextflow!
+```
+- The actual output from our process (displayed by `.view()`)
+
+</details>
+
+### Key Takeaways
+
+**You've learned:**
+- A Nextflow script has **processes** (what to do) and a **workflow** (when to do it)
+- Processes capture output into **channels**
+- The `.view()` operator displays channel contents
+- Nextflow tracks every execution with a unique hash
+- Each process runs in its own work directory
 
 ## 3. Redirect output to a file
 
