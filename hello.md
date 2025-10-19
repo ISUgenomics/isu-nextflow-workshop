@@ -329,18 +329,28 @@ Welcome to the world of Nextflow!
 - Nextflow tracks every execution with a unique hash
 - Each process runs in its own work directory
 
-## 3. Redirect output to a file
+## Script 02: Writing to Files - Understanding File Outputs
 
-Open and read the `2_hello_redirect.nf` pipeline:
+**Learning Goals:**
+- Learn how to create file outputs instead of stdout
+- Understand the Nextflow work directory structure
+- See where process outputs are stored
+- Learn to inspect process execution artifacts
+
+**Building on Script 01:**
+
+In Script 01, we used `output: stdout` to print to the terminal. But real pipelines need to **save results to files**. Script 02 shows you how!
+
+### Step 1: Examine the Script
 
 ```bash
-cat pipelines/2_hello_redirect.nf
+cat pipelines/02_hello_redirect.nf
 ```
 
-You should see a simple DSL2 script that redirects the greeting to a file.
-
 <details>
-<summary>Click to view the script</summary>
+<summary>Click to see the complete script</summary>
+
+**File:** `pipelines/02_hello_redirect.nf`
 
 ```nextflow
 #!/usr/bin/env nextflow
@@ -351,7 +361,7 @@ You should see a simple DSL2 script that redirects the greeting to a file.
 
 process hello {
     output:
-        path 'result.txt'
+    path 'result.txt'
 
     script:
         """
@@ -363,43 +373,123 @@ workflow {
     hello()
 }
 ```
+
 </details>
 
-### Explanation of key lines in `pipelines/2_hello_redirect.nf`
+### What Changed from Script 01?
 
-- `output:`: Specifies the outputs; here `path 'result.txt'` redirects the standard output into the `result.txt` file.
-- `script: """ ... """`: Contains the shell commands to execute within the process (echoing the greeting and redirecting it to a file).
+<details>
+<summary>Comparing the two scripts</summary>
 
-### Run the pipeline locally
+**Script 01:**
+```nextflow
+process hello {
+    output:
+    stdout              // Captures what's printed to terminal
+
+    script:
+    """
+    echo "Welcome to the world of Nextflow!"
+    """
+}
+
+workflow {
+    hello().view()      // .view() displays the stdout
+}
+```
+
+**Script 02:**
+```nextflow
+process hello {
+    output:
+    path 'result.txt'   // Captures a file
+
+    script:
+    """
+    echo "Welcome to the world of Nextflow!" > result.txt
+    """
+}
+
+workflow {
+    hello()             // No .view() needed - output is a file
+}
+```
+
+**Key Differences:**
+1. **Output type**: `stdout` → `path 'result.txt'`
+2. **Script command**: Direct echo → Redirect to file with `>`
+3. **Workflow**: No `.view()` needed (file is automatically saved)
+
+</details>
+
+### Understanding File Outputs
+
+<details>
+<summary>The path output qualifier</summary>
+
+```nextflow
+output:
+path 'result.txt'
+```
+
+**What does `path` mean?**
+
+- `path` tells Nextflow: "This process creates a file"
+- `'result.txt'` is the filename to capture
+- Nextflow will look for this file after the process completes
+- The file is automatically added to a channel (for downstream processes)
+
+**Important:** The filename in `output:` must match the filename created in `script:`
+
+```nextflow
+output:
+path 'result.txt'        // Nextflow expects this file
+
+script:
+"""
+echo "..." > result.txt  // Script must create this file
+"""
+```
+
+</details>
+
+### Step 2: Run the Pipeline
 
 ```bash
-nextflow run 2025-nextflow-workshop/pipelines/2_hello_redirect.nf
-``` 
+nextflow run pipelines/02_hello_redirect.nf
+```
 
-Expected output:
+**Expected Output:**
 
 ```
 N E X T F L O W  ~  version 24.04.4
 
-Launching `2025-nextflow-workshop/pipelines/2_hello_redirect.nf` [determined_hopper] DSL2 - revision: 5ff76c72d0
+Launching `pipelines/02_hello_redirect.nf` [determined_hopper] DSL2 - revision: 5ff76c72d0
 
 executor >  local (1)
 [1a/e8c8c0] process > hello [100%] 1 of 1 ✔
 ```
 
-The greeting should appear in the `result.txt` file. 
+**Notice:** No output is printed! That's because the result is in a file, not stdout.
+
+### Step 3: Find Your Output
+
+<details>
+<summary>Where did the file go?</summary>
+
+**The Work Directory:**
+
+Nextflow stores all process outputs in the `work/` directory. Let's explore it:
 
 ```bash
 tree -a work
 ```
 
-<details>
-<summary>Click to view the output</summary>
-
+**Output:**
 ```
 work
-└── 35
-    └── 61942df7892fb8f5adfc02f431cf46
+└── 1a
+    └── e8c8c0a1b2c3d4e5f6g7h8i9j0k1l2m3
         ├── .command.begin
         ├── .command.err
         ├── .command.log
@@ -407,26 +497,75 @@ work
         ├── .command.run
         ├── .command.sh
         ├── .exitcode
-        └── result.txt
+        └── result.txt        ← Your output file!
 
-3 directories, 8 files
+2 directories, 8 files
 ```
+
+**Structure:**
+- `work/`: Main directory for all process executions
+- `1a/`: First two characters of the process hash
+- `e8c8c0.../`: Full unique hash for this specific execution
+- `result.txt`: Your output file
+- `.command.*`: Nextflow's internal files
+
 </details>
 
-### Understanding the `work` directory contents
+### Understanding the Work Directory
 
-After running a pipeline, Nextflow creates a `work/` directory with a subfolder for each process execution. Inside each of these folders you’ll find:
+<details>
+<summary>What are all these .command files?</summary>
 
-- `.command.begin`: # TODO
-- `.command.sh`: The generated shell script that Nextflow runs.
-- `.command.run`: A wrapper script that launches the process.
-- `.command.out`: Captured standard output from the process.
-- `.command.err`: Captured standard error from the process.
-- `.command.log`: # TODO
-- `.exitcode`: The process exit status code.
-- `result.txt`: The actual output file produced by the process.
+Each process execution creates several files:
 
-These artifacts help with debugging, reproducibility, and understanding exactly what happened during each process run.
+**Your Files:**
+- **`result.txt`**: The output file your process created
+
+**Nextflow's Files:**
+- **`.command.sh`**: The actual shell script Nextflow generated and ran
+  - Look inside to see exactly what was executed!
+- **`.command.run`**: Wrapper script that sets up the environment
+- **`.command.out`**: Standard output (stdout) from the process
+- **`.command.err`**: Standard error (stderr) from the process
+- **`.command.log`**: Combined log of stdout and stderr
+- **`.exitcode`**: Exit status (0 = success, non-zero = error)
+- **`.command.begin`**: Timestamp when process started
+
+**Why is this useful?**
+- **Debugging**: Check `.command.err` if something fails
+- **Reproducibility**: `.command.sh` shows exactly what ran
+- **Verification**: `.exitcode` confirms success/failure
+
+</details>
+
+### Step 4: View the Output
+
+Let's read the file using the hash from the Nextflow output:
+
+```bash
+# Use the hash from your output (e.g., [1a/e8c8c0])
+cat work/1a/e8c8c0*/result.txt
+```
+
+**Output:**
+```
+Welcome to the world of Nextflow!
+```
+
+**Pro tip:** You can also use:
+```bash
+find work -name result.txt -exec cat {} \;
+```
+
+### Key Takeaways
+
+**You've learned:**
+- Use `output: path 'filename'` to create file outputs
+- The filename in `output:` must match what the script creates
+- All process outputs go to the `work/` directory
+- Each process gets a unique subdirectory with a hash
+- The work directory contains debugging artifacts (`.command.*` files)
+- You can inspect these files to understand what happened
 
 ## 4. Use publishDir to save output files
 
