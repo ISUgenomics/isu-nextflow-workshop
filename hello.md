@@ -567,30 +567,49 @@ find work -name result.txt -exec cat {} \;
 - The work directory contains debugging artifacts (`.command.*` files)
 - You can inspect these files to understand what happened
 
-## 4. Use publishDir to save output files
+## Script 03: Publishing Outputs - Making Results Accessible
 
-Open and read the `3_hello_publishdir.nf` pipeline:
+**Learning Goals:**
+- Learn to use `publishDir` to copy outputs to accessible locations
+- Understand the difference between work directory and published directory
+- Learn about different `publishDir` modes
+- Make your results easy to find and share
 
-```bash
-cat pipelines/3_hello_publishdir.nf
+**Building on Script 02:**
+
+In Script 02, outputs went to the `work/` directory with cryptic hashes. That's great for Nextflow's internal management, but **terrible for humans**! Script 03 shows you how to publish outputs to user-friendly locations.
+
+### The Problem with Work Directories
+
+**Script 02 output location:**
+```
+work/1a/e8c8c0a1b2c3d4e5f6g7h8i9j0k1l2m3/result.txt
 ```
 
-### Run the pipeline
+**Problems:**
+- Hard to find (need to look up the hash)
+- Changes every run (new hash each time)
+- Gets deleted if you clean the work directory
+- Not suitable for sharing results
+
+**Solution:** Use `publishDir` to copy/link outputs to a permanent, accessible location!
+
+### Step 1: Examine the Script
 
 ```bash
-nextflow run 2025-nextflow-workshop/pipelines/3_hello_publishdir.nf
+cat pipelines/03_hello_publishdir.nf
 ```
-
-After running, you should see the output file in the `output` directory.
 
 <details>
-<summary>Click to view the script</summary>
+<summary>Click to see the complete script</summary>
+
+**File:** `pipelines/03_hello_publishdir.nf`
 
 ```nextflow
 #!/usr/bin/env nextflow
 
 /*
-* Use echo to print a message to the screen
+* Create an output directory where the output will be saved
 */
 
 process hello {
@@ -610,30 +629,222 @@ workflow {
   hello()
 }
 ```
+
 </details>
 
-### Explanation of key lines in `pipelines/3_hello_publishdir.nf`
-
-- `publishDir 'output', mode: 'copy'`: Specifies that output files should be copied to the 'output' directory.
-
-## 5. Using input values
-
-Open and read the `4_hello_input.nf` pipeline:
-
-```bash
-cat pipelines/4_hello_input.nf
-```
-
-### Run the pipeline
-
-```bash
-nextflow run 2025-nextflow-workshop/pipelines/4_hello_input.nf
-```
-
-The custom greeting will be saved to the output file.
+### What Changed from Script 02?
 
 <details>
-<summary>Click to view the script</summary>
+<summary>The publishDir directive</summary>
+
+**Script 02:**
+```nextflow
+process hello {
+    output:
+    path 'result.txt'
+    
+    script:
+    """
+    echo "Welcome to the world of Nextflow!" > result.txt
+    """
+}
+```
+
+**Script 03:**
+```nextflow
+process hello {
+  publishDir 'output', mode: 'copy'    // NEW!
+
+  output:
+  path 'result.txt'
+
+  script:
+  """
+  echo "Hello Nextflow World!" > result.txt
+  """
+}
+```
+
+**The only change:** Added `publishDir 'output', mode: 'copy'`
+
+</details>
+
+### Understanding publishDir
+
+<details>
+<summary>How publishDir works</summary>
+
+```nextflow
+publishDir 'output', mode: 'copy'
+```
+
+**What it does:**
+- Takes files from the work directory
+- Copies (or links) them to the specified directory
+- Happens **after** the process completes successfully
+
+**Components:**
+- **`'output'`**: Target directory name
+  - Can be any path: `'results'`, `'my_outputs'`, `'/absolute/path'`
+  - Created automatically if it doesn't exist
+- **`mode: 'copy'`**: How to publish the file
+
+**Data Flow:**
+```
+Process runs → Creates result.txt in work/ → publishDir copies to output/
+```
+
+</details>
+
+<details>
+<summary>publishDir modes</summary>
+
+**Common modes:**
+
+1. **`mode: 'copy'`** (most common)
+   - Creates a copy of the file
+   - Original stays in work directory
+   - Safe: deleting published file doesn't affect work directory
+
+2. **`mode: 'symlink'`**
+   - Creates a symbolic link
+   - Saves disk space (no duplicate)
+   - Faster than copy
+   - **Warning:** If you clean work directory, link breaks!
+
+3. **`mode: 'move'`**
+   - Moves the file (removes from work directory)
+   - Saves disk space
+   - **Warning:** Can't resume if you delete the published file!
+
+**Recommendation:** Use `'copy'` unless disk space is critical.
+
+</details>
+
+### Step 2: Run the Pipeline
+
+```bash
+nextflow run pipelines/03_hello_publishdir.nf
+```
+
+**Expected Output:**
+```
+N E X T F L O W  ~  version 24.04.4
+
+Launching `pipelines/03_hello_publishdir.nf` [determined_hopper] DSL2 - revision: 5ff76c72d0
+
+executor >  local (1)
+[2b/f9d1e2] process > hello [100%] 1 of 1 ✔
+```
+
+### Step 3: Find Your Published Output
+
+Now the output is in an easy-to-find location!
+
+```bash
+ls -la output/
+```
+
+**Output:**
+```
+total 8
+drwxr-xr-x  3 user  group   96 Oct 19 01:30 .
+drwxr-xr-x  8 user  group  256 Oct 19 01:30 ..
+-rw-r--r--  1 user  group   23 Oct 19 01:30 result.txt
+```
+
+**View the file:**
+```bash
+cat output/result.txt
+```
+
+**Output:**
+```
+Hello Nextflow World!
+```
+
+**Much easier than:**
+```bash
+cat work/2b/f9d1e2a3b4c5d6e7f8g9h0i1j2k3l4m5/result.txt
+```
+
+### Both Locations Exist!
+
+<details>
+<summary>Work directory vs. Published directory</summary>
+
+**After running Script 03, you have TWO copies:**
+
+1. **Work directory** (Nextflow's internal copy):
+   ```
+   work/2b/f9d1e2.../result.txt
+   ```
+   - Used for pipeline management
+   - Used for `-resume` functionality
+   - Can be cleaned up later
+
+2. **Published directory** (Your accessible copy):
+   ```
+   output/result.txt
+   ```
+   - Easy to find and share
+   - Permanent location
+   - Safe to use in downstream analysis
+
+**Best Practice:** Keep work directory for development, clean it periodically. Keep published outputs permanently.
+
+</details>
+
+### Key Takeaways
+
+**You've learned:**
+- `publishDir` copies outputs to accessible locations
+- Use `mode: 'copy'` for safety (most common)
+- Published files are separate from work directory
+- The work directory is still created (for resume functionality)
+- Published outputs are easy to find, share, and use
+
+## Script 04: Process Inputs - Passing Data to Processes
+
+**Learning Goals:**
+- Learn how to define process inputs
+- Understand the `val` input qualifier
+- See how to pass data from workflow to process
+- Use variables in process scripts
+
+**Building on Script 03:**
+
+Scripts 01-03 had **hardcoded** messages. But real pipelines need to process **different data**! Script 04 introduces process inputs - the foundation for making processes reusable.
+
+### The Problem with Hardcoded Values
+
+**Script 03:**
+```nextflow
+process hello {
+  script:
+  """
+  echo "Hello Nextflow World!" > result.txt  // Always the same!
+  """
+}
+```
+
+**Problems:**
+- Can't change the message without editing the script
+- Can't process different inputs
+- Not reusable
+
+**Solution:** Add an `input` block to accept data!
+
+### Step 1: Examine the Script
+
+```bash
+cat pipelines/04_hello_input.nf
+```
+
+<details>
+<summary>Click to see the complete script</summary>
+
+**File:** `pipelines/04_hello_input.nf`
 
 ```nextflow
 #!/usr/bin/env nextflow
@@ -657,30 +868,209 @@ workflow {
     hello("Hello, welcome to the world of Nextflow!")
 }
 ```
+
 </details>
 
-### Explanation of key lines in `pipelines/4_hello_input.nf`
+### What Changed from Script 03?
 
-- `input: val welcome`: Defines an input value that will be used in the process.
-- `echo "$welcome" > result.txt`: Uses the input value in the script.
-- `hello("Hello, welcome to the world of Nextflow!")`: Passes a string value to the process.
+<details>
+<summary>Adding the input block</summary>
 
-## 6. Using parameters
+**Script 03:**
+```nextflow
+process hello {
+  publishDir 'output', mode: 'copy'
 
-Open and read the `5_hello_default.nf` pipeline:
+  output:
+  path 'result.txt'
 
-```bash
-cat pipelines/5_hello_default.nf
+  script:
+  """
+  echo "Hello Nextflow World!" > result.txt
+  """
+}
+
+workflow {
+  hello()  // No arguments
+}
 ```
 
-### Run the pipeline with default parameters
+**Script 04:**
+```nextflow
+process hello {
+    publishDir 'output', mode: 'copy'
+
+    input:                    // NEW!
+    val welcome              // NEW!
+
+    output:
+    path 'result.txt'
+
+    script:
+    """
+    echo "$welcome" > result.txt    // Uses variable!
+    """
+}
+
+workflow {
+    hello("Hello, welcome to the world of Nextflow!")  // Pass data
+}
+```
+
+**Key Changes:**
+1. Added `input:` block with `val welcome`
+2. Changed script to use `$welcome` variable
+3. Workflow now passes a string to `hello()`
+
+</details>
+
+### Understanding Process Inputs
+
+<details>
+<summary>The input block</summary>
+
+```nextflow
+input:
+val welcome
+```
+
+**What does this mean?**
+
+- **`input:`**: Declares what data the process needs
+- **`val`**: Input qualifier meaning "value" (string, number, etc.)
+- **`welcome`**: Variable name to use in the script
+
+**Input qualifiers:**
+- **`val`**: Simple values (strings, numbers, booleans)
+- **`path`**: Files or directories (we'll use this in Scripts 06-10)
+- **`tuple`**: Multiple values grouped together
+
+</details>
+
+<details>
+<summary>Using inputs in scripts</summary>
+
+```nextflow
+script:
+"""
+echo "$welcome" > result.txt
+"""
+```
+
+**Variable interpolation:**
+
+- **`$welcome`**: Bash-style variable reference
+- Nextflow replaces `$welcome` with the actual value before running
+- Works like bash variables in the script block
+
+**Example:** If `welcome = "Hello!"`, the script becomes:
+```bash
+echo "Hello!" > result.txt
+```
+
+</details>
+
+<details>
+<summary>Passing data in the workflow</summary>
+
+```nextflow
+workflow {
+    hello("Hello, welcome to the world of Nextflow!")
+}
+```
+
+**How it works:**
+
+1. Workflow calls `hello()` with a string argument
+2. The string is passed to the process's `input` block
+3. The value is assigned to the `welcome` variable
+4. The process script uses `$welcome`
+
+**Data Flow:**
+```
+Workflow: "Hello, welcome..." → Process input: welcome → Script: $welcome
+```
+
+</details>
+
+### Step 2: Run the Pipeline
 
 ```bash
-nextflow run 2025-nextflow-workshop/pipelines/5_hello_default.nf
+nextflow run pipelines/04_hello_input.nf
+```
+
+**Expected Output:**
+```
+N E X T F L O W  ~  version 24.04.4
+
+Launching `pipelines/04_hello_input.nf` [determined_hopper] DSL2 - revision: 5ff76c72d0
+
+executor >  local (1)
+[3c/a1b2c3] process > hello [100%] 1 of 1 ✔
+```
+
+### Step 3: Check the Output
+
+```bash
+cat output/result.txt
+```
+
+**Output:**
+```
+Hello, welcome to the world of Nextflow!
+```
+
+The message came from the workflow, not hardcoded in the process!
+
+### Key Takeaways
+
+**You've learned:**
+- Processes can accept inputs using the `input:` block
+- Use `val` for simple values (strings, numbers)
+- Variables are accessed with `$variable_name` in scripts
+- The workflow passes data to processes as arguments
+- This makes processes reusable with different data
+
+## Script 05: Parameters - Making Pipelines Configurable
+
+**Learning Goals:**
+- Learn to use `params` for configurable pipelines
+- Understand default parameter values
+- Learn to override parameters from the command line
+- Make pipelines flexible and reusable
+
+**Building on Script 04:**
+
+Script 04 required editing the workflow to change the message. But what if you want users to customize the pipeline **without editing code**? Script 05 introduces parameters - the standard way to make Nextflow pipelines configurable!
+
+### The Problem with Hardcoded Workflow Values
+
+**Script 04:**
+```nextflow
+workflow {
+    hello("Hello, welcome to the world of Nextflow!")  // Hardcoded!
+}
+```
+
+**To change the message, you must:**
+1. Open the script file
+2. Edit the string
+3. Save the file
+
+**Not user-friendly!**
+
+**Solution:** Use `params` to allow command-line configuration!
+
+### Step 1: Examine the Script
+
+```bash
+cat pipelines/05_hello_default.nf
 ```
 
 <details>
-<summary>Click to view the script</summary>
+<summary>Click to see the complete script</summary>
+
+**File:** `pipelines/05_hello_default.nf`
 
 ```nextflow
 #!/usr/bin/env nextflow
@@ -706,18 +1096,221 @@ workflow {
     hello(params.welcome)
 }
 ```
+
 </details>
 
-### Explanation of key lines in `pipelines/5_hello_default.nf`
+### What Changed from Script 04?
 
-- `params.welcome = "Hello, welcome to the world of Nextflow!"`: Defines a default parameter value.
-- `hello(params.welcome)`: Uses the parameter in the workflow.
+<details>
+<summary>Adding parameters</summary>
 
-You can override this parameter when running the pipeline:
+**Script 04:**
+```nextflow
+workflow {
+    hello("Hello, welcome to the world of Nextflow!")
+}
+```
+
+**Script 05:**
+```nextflow
+params.welcome = "Hello, welcome to the world of Nextflow!"  // NEW!
+
+workflow {
+    hello(params.welcome)  // Uses parameter
+}
+```
+
+**Key Changes:**
+1. Added `params.welcome` with a default value
+2. Workflow uses `params.welcome` instead of hardcoded string
+
+</details>
+
+### Understanding Parameters
+
+<details>
+<summary>What are params?</summary>
+
+**Parameters** are Nextflow's way of making pipelines configurable.
+
+```nextflow
+params.welcome = "Hello, welcome to the world of Nextflow!"
+```
+
+**Key Concepts:**
+
+- **`params`**: Special Nextflow object for parameters
+- **`.welcome`**: Parameter name (you choose this)
+- **`= "..."`**: Default value (used if not overridden)
+
+**Naming convention:** Use lowercase with underscores
+- Good: `params.input_file`, `params.output_dir`, `params.quality_threshold`
+- Avoid: `params.InputFile`, `params.OUTDIR`
+
+</details>
+
+<details>
+<summary>How parameters work</summary>
+
+**Three ways to set parameters:**
+
+1. **Default value in script** (lowest priority):
+   ```nextflow
+   params.welcome = "Default message"
+   ```
+
+2. **Command-line argument** (highest priority):
+   ```bash
+   nextflow run script.nf --welcome "Custom message"
+   ```
+
+3. **Config file** (medium priority - covered in advanced topics):
+   ```nextflow
+   params {
+       welcome = "Config message"
+   }
+   ```
+
+**Priority:** Command-line > Config file > Script default
+
+</details>
+
+### Step 2: Run with Default Parameters
 
 ```bash
-nextflow run 2025-nextflow-workshop/pipelines/5_hello_default.nf --welcome "Custom greeting!"
+nextflow run pipelines/05_hello_default.nf
 ```
+
+**Expected Output:**
+```
+N E X T F L O W  ~  version 24.04.4
+
+Launching `pipelines/05_hello_default.nf` [determined_hopper] DSL2 - revision: 5ff76c72d0
+
+executor >  local (1)
+[4d/b2c3d4] process > hello [100%] 1 of 1 ✔
+```
+
+**Check the output:**
+```bash
+cat output/result.txt
+```
+
+**Output:**
+```
+Hello, welcome to the world of Nextflow!
+```
+
+The default value was used!
+
+### Step 3: Override Parameters
+
+Now the magic - change the message **without editing the script**:
+
+```bash
+nextflow run pipelines/05_hello_default.nf --welcome "Greetings from the command line!"
+```
+
+**Check the output:**
+```bash
+cat output/result.txt
+```
+
+**Output:**
+```
+Greetings from the command line!
+```
+
+**It worked!** The command-line value overrode the default.
+
+### Real-World Example
+
+<details>
+<summary>How this applies to real pipelines</summary>
+
+**Typical bioinformatics pipeline parameters:**
+
+```nextflow
+// Input/Output
+params.reads = "data/*_{R1,R2}.fastq.gz"
+params.output_dir = "results"
+
+// Quality control
+params.min_quality = 20
+params.min_length = 50
+
+// Analysis
+params.genome = "/path/to/reference.fa"
+params.threads = 4
+```
+
+**Users can customize without editing:**
+```bash
+nextflow run pipeline.nf \\
+  --reads "my_data/*.fastq.gz" \\
+  --output_dir "my_results" \\
+  --min_quality 30 \\
+  --threads 8
+```
+
+**This is how Scripts 06-10 work!**
+
+</details>
+
+### Common Parameter Patterns
+
+<details>
+<summary>Best practices for parameters</summary>
+
+**1. Provide sensible defaults:**
+```nextflow
+params.threads = 4          // Good default
+params.output_dir = "results"  // Reasonable
+```
+
+**2. Document your parameters:**
+```nextflow
+// Input files (glob pattern)
+params.reads = "data/*.fastq.gz"
+
+// Quality threshold (Phred score)
+params.min_quality = 20
+```
+
+**3. Group related parameters:**
+```nextflow
+// Input/Output
+params.input_dir = "data"
+params.output_dir = "results"
+
+// Quality Control
+params.min_quality = 20
+params.min_length = 50
+```
+
+**4. Use descriptive names:**
+- Good: `params.quality_threshold`, `params.input_fastq`
+- Bad: `params.qt`, `params.in`
+
+</details>
+
+### Key Takeaways
+
+**You've learned:**
+- Use `params.name = value` to define parameters
+- Parameters provide default values
+- Override with `--param_name value` on command line
+- Command-line values take priority over defaults
+- Parameters make pipelines user-friendly and reusable
+- This is the foundation for configurable bioinformatics pipelines
+
+**Congratulations!** You've completed the foundational scripts (01-05). You now understand:
+- Processes and workflows
+- File outputs and publishDir
+- Process inputs
+- Parameters
+
+You're ready for the implementation tutorial (Scripts 06-10) with real bioinformatics tools!
 
 ## 6. Clean up
 
