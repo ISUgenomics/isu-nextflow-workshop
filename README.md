@@ -1,7 +1,9 @@
-# Nextflow Workshop: Building Reproducible Computational Pipelines
+# Introduction to Pipeline Development with Nextflow 
+
 
 **Iowa State University**  
 **Genome Informatics Facility, Office of Biotechnology**
+**October 21st, 2025 (1pm-5pm)**
 
 ---
 
