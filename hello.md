@@ -4,28 +4,28 @@ Welcome to the Nextflow workshop! In this hands-on tutorial, you'll learn how to
 
 ## What is Nextflow?
 
-**Nextflow** is a powerful workflow management system designed to make computational pipelines:
-- **Portable**: Run the same pipeline on your laptop, HPC cluster, or cloud
-- **Reproducible**: Track every step and ensure consistent results
-- **Scalable**: Automatically parallelize tasks across available resources
-- **Flexible**: Write once, run anywhere (local, SLURM, AWS, etc.)
+**Nextflow** is a workflow management system for building computational pipelines that are:
+- **Portable**: Run on laptops, HPC clusters, or cloud
+- **Reproducible**: Track every step with consistent results
+- **Scalable**: Automatic parallelization across resources
+- **Flexible**: Deploy anywhere (local, SLURM, AWS, etc.)
 - **Tool-agnostic**: Integrate any command-line program (Python, R, bash scripts, compiled binaries)
 
 ### Why Use Nextflow?
 
-Traditional computational workflows often involve:
-- Writing complex bash scripts with nested loops
-- Manually tracking which files have been processed
-- Struggling with parallelization and resource management
-- Difficulty reproducing results months later
-- Combining tools from different sources (published tools, lab scripts, your own code)
+Traditional computational workflows require:
+- Complex bash scripts with nested loops
+- Manual file tracking
+- Custom parallelization logic
+- Difficult result reproduction
+- Messy integration of diverse tools
 
-**Nextflow solves these problems** by:
-- Automatically parallelizing independent tasks
-- Managing data flow between processes
-- Handling failures and resuming from checkpoints
-- Providing clear, readable pipeline code
-- Seamlessly integrating tools regardless of their origin
+**Nextflow handles:**
+- Automatic task parallelization
+- Data flow management
+- Failure recovery and checkpointing
+- Clear maintainable code
+- Seamless tool integration
 
 ### Key Concepts
 
